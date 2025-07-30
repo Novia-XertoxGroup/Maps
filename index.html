@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Novia Maps</title>
+  <link rel="icon" type="image/png" href="Icon.png" />
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #canvas {
+      display: block;
+      background: #000;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      
+    }
+    #logo-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+#logo {
+  height: 32px;
+  width: auto;
+  margin-right: 8px;
+}
+
+#title {
+  color: white;
+  font-family: sans-serif;
+  font-size: 18px;
+}
+#footer {
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-family: sans-serif;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.253);
+  padding: 6px;
+  pointer-events: none;
+}
+
+  </style>
+</head>
+<body>
+  <div id="logo-container">
+  <img src="Logo.png" alt="Logo" id="logo">
+  <span id="title">Novia Map</span>
+</div>
+<canvas id="canvas"></canvas>
+<footer id="footer">
+  © Copyright Xertox Group
+</footer>
+
+
+<script>
+  const tileSize = 512;
+  const tileFolder = "tiles/";
+  const fallbackTile = "blank.png";
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+const fallbackImage = new Image();
+fallbackImage.src = tileFolder + fallbackTile;
+
+  let tiles = {};
+  let zoom = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  let isDragging = false;
+  let dragStart = { x: 0, y: 0 };
+  let cameraStart = { x: 0, y: 0 };
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Centrer sur la tuile 25,13 après avoir défini canvas size
+  offsetX = canvas.width / 2 - (25 * tileSize * zoom);
+  offsetY = canvas.height / 2 - (13 * tileSize * zoom);
+
+  draw();
+}
+
+  window.addEventListener("resize", resizeCanvas);
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const tilesInX = Math.ceil(canvas.width / (tileSize * zoom)) + 2;
+    const tilesInY = Math.ceil(canvas.height / (tileSize * zoom)) + 2;
+
+    const startX = Math.floor(-offsetX / (tileSize * zoom));
+    const startY = Math.floor(-offsetY / (tileSize * zoom));
+
+    for (let y = startY; y < startY + tilesInY; y++) {
+      for (let x = startX; x < startX + tilesInX; x++) {
+        drawTile(x, y);
+      }
+    }
+  }
+
+function drawTile(x, y) {
+  const key = `${x},${y}`;
+
+  if (tiles[key] === undefined) {
+    const img = new Image();
+    img.decoding = "async";
+    img.loading = "eager";
+    
+    img.onload = () => {
+      tiles[key] = img;
+      draw(); // Optionnel : tu peux aussi retirer ce draw() si trop de redessins
+    };
+
+    img.onerror = () => {
+      tiles[key] = fallbackImage;
+      draw(); // Optionnel
+    };
+
+    img.src = `${tileFolder}${key}.png`;
+    tiles[key] = null;
+  }
+
+  const img = tiles[key];
+  if (img) {
+    const px = offsetX + x * tileSize * zoom;
+    const py = offsetY + y * tileSize * zoom;
+    ctx.drawImage(img, px, py, tileSize * zoom, tileSize * zoom);
+  }
+}
+
+  canvas.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    dragStart = { x: e.clientX, y: e.clientY };
+    cameraStart = { x: offsetX, y: offsetY };
+    canvas.style.cursor = "grabbing";
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    isDragging = false;
+    canvas.style.cursor = "grab";
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      offsetX = cameraStart.x + (e.clientX - dragStart.x);
+      offsetY = cameraStart.y + (e.clientY - dragStart.y);
+      draw();
+    }
+  });
+canvas.addEventListener("contextmenu", (e) => {
+  e.preventDefault(); // Empêche le menu clic droit natif
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  const worldX = (mouseX - offsetX) / zoom;
+  const worldY = (mouseY - offsetY) / zoom;
+
+  const tileX = Math.floor(worldX / tileSize);
+  const tileY = Math.floor(worldY / tileSize);
+
+  alert(`Tuile : ${tileX},${tileY}`);
+});
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const oldZoom = zoom;
+    const zoomFactor = 1.1;
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+
+    const worldX = (mouseX - offsetX) / zoom;
+    const worldY = (mouseY - offsetY) / zoom;
+
+    zoom *= e.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+zoom = Math.max(0.06, Math.min(zoom, 5));
+
+    offsetX = mouseX - worldX * zoom;
+    offsetY = mouseY - worldY * zoom;
+
+    draw();
+  });
+
+  resizeCanvas();
+</script>
+</body>
+</html>
