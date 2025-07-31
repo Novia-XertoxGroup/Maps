@@ -54,6 +54,46 @@
   padding: 6px;
   pointer-events: none;
 }
+@media (max-width: 768px) {
+
+  #logo-container {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 16px;
+    border-radius: 12px;
+  }
+
+  #logo {
+    height: 30px;
+    width: auto;
+    margin-right: 10px;
+  }
+
+  #title {
+    color: white;
+    font-family: sans-serif;
+    font-size: 20px;
+  }
+
+  #footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 12px;
+    pointer-events: none;
+  }
+
+}
 
   </style>
 </head>
@@ -143,6 +183,37 @@ function drawTile(x, y) {
     ctx.drawImage(img, px, py, tileSize * zoom, tileSize * zoom);
   }
 }
+// Support tactile (mobile)
+let touchStart = { x: 0, y: 0 };
+
+canvas.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    touchStart = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    cameraStart = { x: offsetX, y: offsetY };
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  if (isDragging && e.touches.length === 1) {
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+
+    offsetX = cameraStart.x + (touchX - touchStart.x);
+    offsetY = cameraStart.y + (touchY - touchStart.y);
+
+    draw();
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", () => {
+  isDragging = false;
+});
 
   canvas.addEventListener("mousedown", (e) => {
     isDragging = true;
